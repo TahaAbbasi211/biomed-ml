@@ -1,0 +1,14 @@
+experiment: eeg_logreg
+dataset:
+  name: eeg_bonn
+  positive_labels: [1]
+features:
+  - name: stats
+  - name: band_power
+model:
+  name: logreg
+cv:
+  n_splits: 5
+  seed: 42
+  grouped: true
+output_dir: outputs
