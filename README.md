@@ -5,9 +5,6 @@ feature extractors, models and experiments are separate modules, and an
 experiment is just a small YAML file. The first module detects epileptic
 seizures in EEG segments.
 
-> **Educational project. Not a medical device.** The results come from a
-> public benchmark dataset and must not be used for diagnosis or treatment.
-
 ![Streamlit demo](docs/app.png)
 
 ## Results: seizure vs. non-seizure EEG

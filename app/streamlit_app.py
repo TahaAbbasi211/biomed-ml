@@ -18,10 +18,6 @@ CLASS_NAMES = {1: "Seizure", 2: "Tumor area", 3: "Healthy area",
 
 st.set_page_config(page_title="EEG seizure detector", page_icon="??")
 st.title("EEG seizure detector")
-st.warning(
-    "Educational demo built on the Bonn benchmark dataset. "
-    "It is NOT a medical device and must not be used for diagnosis."
-)
 
 if not MODEL_PATH.exists():
     st.error("Model file not found. Run: "
