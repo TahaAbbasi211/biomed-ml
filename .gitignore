@@ -1,4 +1,5 @@
-data/
+data/*
+!data/heart/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
