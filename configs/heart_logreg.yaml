@@ -1,0 +1,14 @@
+experiment: heart_logreg
+dataset:
+  name: heart_cleveland
+  positive_labels: [1]
+features:
+  - name: raw
+preprocess: heart_tabular
+model:
+  name: logreg
+cv:
+  n_splits: 5
+  seed: 42
+  grouped: false
+output_dir: outputs
