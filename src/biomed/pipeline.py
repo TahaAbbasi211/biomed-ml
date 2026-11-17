@@ -4,15 +4,19 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from sklearn.pipeline import make_pipeline
 
-from .datasets import BonnEEGDataset
+from .datasets import BonnEEGDataset, HeartDiseaseDataset
 from .evaluation import cross_validate
-from .features import BandPowerFeatures, CombinedFeatures, StatsFeatures
+from .features import (BandPowerFeatures, CombinedFeatures, RawFeatures,
+                       StatsFeatures)
 from .models import build_model
+from .preprocessing import PREPROCESSORS
 
 # Registries: to plug in something new, write its class and add one line here.
-DATASETS = {"eeg_bonn": BonnEEGDataset}
-FEATURES = {"stats": StatsFeatures, "band_power": BandPowerFeatures}
+DATASETS = {"eeg_bonn": BonnEEGDataset, "heart_cleveland": HeartDiseaseDataset}
+FEATURES = {"stats": StatsFeatures, "band_power": BandPowerFeatures,
+            "raw": RawFeatures}
 
 
 def load_config(path):
@@ -27,14 +31,36 @@ def build_dataset(cfg):
     return DATASETS[name](**cfg.get("params", {}))
 
 
-def build_features(items):
+def build_features(items, dataset=None):
     extractors = []
     for item in items:
         name = item["name"]
         if name not in FEATURES:
             raise KeyError(f"Unknown feature set '{name}'. Available: {list(FEATURES)}")
-        extractors.append(FEATURES[name](**item.get("params", {})))
+        params = dict(item.get("params", {}))
+        if name == "raw" and "names" not in params and hasattr(dataset, "feature_names"):
+            params["names"] = list(dataset.feature_names)
+        extractors.append(FEATURES[name](**params))
     return CombinedFeatures(extractors)
+
+
+def make_model_factory(cfg):
+    """Returns a function that builds a fresh model. If the config has a
+    'preprocess' entry, the model is wrapped in a Pipeline so the
+    preprocessing is fitted again inside every cross-validation fold."""
+    model_name = cfg["model"]["name"]
+    prep_name = cfg.get("preprocess")
+    if prep_name is not None and prep_name not in PREPROCESSORS:
+        raise KeyError(f"Unknown preprocessor '{prep_name}'. "
+                       f"Available: {list(PREPROCESSORS)}")
+
+    def factory():
+        model = build_model(model_name)
+        if prep_name is None:
+            return model
+        return make_pipeline(PREPROCESSORS[prep_name](), model)
+
+    return factory
 
 
 def run_experiment(cfg, save=True):
@@ -45,13 +71,12 @@ def run_experiment(cfg, save=True):
     positive = cfg["dataset"].get("positive_labels", [1])
     target = np.isin(y, positive).astype(int)
 
-    fe = build_features(cfg["features"])
+    fe = build_features(cfg["features"], dataset)
     F = fe.transform(X)
 
     cv_cfg = cfg.get("cv", {})
-    model_name = cfg["model"]["name"]
     folds = cross_validate(
-        lambda: build_model(model_name), F, target, groups,
+        make_model_factory(cfg), F, target, groups,
         n_splits=cv_cfg.get("n_splits", 5),
         seed=cv_cfg.get("seed", 42),
         grouped=cv_cfg.get("grouped", True),
@@ -64,7 +89,9 @@ def run_experiment(cfg, save=True):
         folds.to_csv(out / "folds.csv", index=False)
         payload = {
             "experiment": cfg["experiment"],
-            "model": model_name,
+            "model": cfg["model"]["name"],
+            "preprocess": cfg.get("preprocess"),
+            "n_samples": int(len(target)),
             "n_features": int(F.shape[1]),
             "summary": summary,
         }
