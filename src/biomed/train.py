@@ -2,19 +2,17 @@ import sys
 from pathlib import Path
 
 import joblib
-import numpy as np
 
 from .pipeline import (build_dataset, build_features, load_config,
-                       make_model_factory)
+                       make_model_factory, make_target)
 
 
 def train_final_model(cfg):
     """Fit the configured model on ALL data. Its score on this same data is
-    meaningless; use the cross-validation results for performance claims."""
+    meaningless; use the evaluation results for performance claims."""
     dataset = build_dataset(cfg["dataset"])
     X, y, _ = dataset.load()
-    positive = cfg["dataset"].get("positive_labels", [1])
-    target = np.isin(y, positive).astype(int)
+    target = make_target(cfg, y)
 
     features = build_features(cfg["features"], dataset)
     model = make_model_factory(cfg)()
