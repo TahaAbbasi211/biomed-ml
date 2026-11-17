@@ -4,13 +4,16 @@ from sklearn.metrics import (accuracy_score, f1_score, precision_score,
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold
 
 
-def cross_validate(model_factory, X, y, groups, n_splits=5, seed=42, grouped=True):
+def cross_validate(model_factory, X, y, groups=None, n_splits=5, seed=42,
+                   grouped=True):
     """Cross-validate a model and return one row of metrics per fold.
 
     grouped=True keeps all segments of one recording on the same side of the
     split (no leakage). grouped=False is a plain stratified split, kept only
-    to show how much leakage inflates the score.
+    to show how much leakage inflates the score. If groups is None (one row
+    per subject) a plain stratified split is used.
     """
+    grouped = grouped and groups is not None
     if grouped:
         splitter = StratifiedGroupKFold(n_splits=n_splits, shuffle=True,
                                         random_state=seed)
