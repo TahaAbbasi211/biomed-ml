@@ -1,0 +1,16 @@
+experiment: eeg_rf_5class
+task: multiclass
+labels: [1, 2, 3, 4, 5]
+macro_labels: [1, 2, 3, 4, 5]
+dataset:
+  name: eeg_bonn
+features:
+  - name: stats
+  - name: band_power
+model:
+  name: random_forest
+evaluation:
+  type: holdout
+  test_size: 0.2
+  seed: 42
+output_dir: outputs
