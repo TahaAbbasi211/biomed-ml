@@ -1,0 +1,16 @@
+# Same as ecg_rf.yaml but plain argmax (no decision weights), for comparison.
+experiment: ecg_rf_plain_ds1_ds2
+task: multiclass
+labels: [0, 1, 2, 3]
+macro_labels: [0, 1, 2, 3]
+dataset:
+  name: mitbih
+features:
+  - name: ecg_beat
+model:
+  name: ecg_rf
+evaluation:
+  type: holdout
+  train_groups: DS1
+  test_groups: DS2
+output_dir: outputs
