@@ -12,7 +12,7 @@ class StatsFeatures(BaseFeatureExtractor):
         return ["mean", "std", "min", "max", "ptp", "rms", "skew",
                 "kurtosis", "line_length", "zero_crossings"]
 
-    def transform(self, X):
+    def transform(self, X, groups=None):
         X = np.asarray(X, dtype=float)
         mean = X.mean(axis=1)
         centered = X - mean[:, None]
