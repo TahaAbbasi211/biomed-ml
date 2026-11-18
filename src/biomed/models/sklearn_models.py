@@ -18,6 +18,11 @@ MODELS = {
         n_estimators=300, class_weight="balanced", n_jobs=-1, random_state=42
     ),
     "hist_gb": lambda: HistGradientBoostingClassifier(random_state=42),
+    # the small forest of the ECG arrhythmia project
+    "ecg_rf": lambda: RandomForestClassifier(
+        n_estimators=50, min_samples_leaf=5, class_weight="balanced",
+        n_jobs=-1, random_state=42
+    ),
 }
 
 
