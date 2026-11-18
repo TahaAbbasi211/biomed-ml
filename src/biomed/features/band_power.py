@@ -28,7 +28,7 @@ class BandPowerFeatures(BaseFeatureExtractor):
             names += [f"{b}_abs", f"{b}_rel"]
         return names + ["dominant_freq"]
 
-    def transform(self, X):
+    def transform(self, X, groups=None):
         X = np.asarray(X, dtype=float)
         freqs, psd = welch(X, fs=self.fs, nperseg=self.nperseg, axis=-1)
         total = trapezoid(psd, freqs, axis=-1) + 1e-12
