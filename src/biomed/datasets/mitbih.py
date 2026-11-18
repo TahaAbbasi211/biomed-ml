@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -51,14 +52,20 @@ class MITBIHDataset(BaseDataset):
              interval before and after the beat (in samples)
       y      label codes 0..3 for the AAMI classes N, S, V, F
       groups record id of every beat (use it to split by patient)
+
+    subset="DS1" or "DS2" loads only that group of records. The same names
+    can be used in an evaluation config (train_groups / test_groups).
     """
 
     name = "mitbih"
+    named_splits = {"DS1": DS1, "DS2": DS2}
 
-    def __init__(self, root=DEFAULT_ROOT, records=None, exclude_paced=True,
-                 lead="MLII", pre=PRE, post=POST, use_cache=True):
+    def __init__(self, root=DEFAULT_ROOT, records=None, subset=None,
+                 exclude_paced=True, lead="MLII", pre=PRE, post=POST,
+                 use_cache=True):
         self.root = Path(root)
         self.records = None if records is None else [str(r) for r in records]
+        self.subset = subset
         self.exclude_paced = exclude_paced
         self.lead = lead
         self.pre = pre
@@ -68,6 +75,11 @@ class MITBIHDataset(BaseDataset):
     def _record_ids(self):
         if self.records is not None:
             return self.records
+        if self.subset is not None:
+            if self.subset not in self.named_splits:
+                raise KeyError(f"Unknown subset '{self.subset}'. "
+                               f"Available: {list(self.named_splits)}")
+            return list(self.named_splits[self.subset])
         ids = sorted(p.stem for p in self.root.glob("*.hea"))
         if not ids:
             raise FileNotFoundError(
@@ -113,7 +125,8 @@ class MITBIHDataset(BaseDataset):
         ids = self._record_ids()
         meta = json.dumps({"v": 1, "records": ids, "lead": self.lead,
                            "pre": self.pre, "post": self.post})
-        cache = self.root.parent / "beats_cache.npz"
+        tag = hashlib.md5(meta.encode()).hexdigest()[:10]
+        cache = self.root.parent / f"beats_cache_{tag}.npz"
         if self.use_cache and cache.exists():
             d = np.load(cache)
             if str(d["meta"]) == meta:
