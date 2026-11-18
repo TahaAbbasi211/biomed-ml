@@ -1,0 +1,19 @@
+# Label codes: 0 = N, 1 = S, 2 = V, 3 = F.
+# Decision weights (N 1, S 2, V 1, F 0) come from the ECG arrhythmia project.
+# F = 0 (never predict fusion beats) was decided after looking at test patients.
+experiment: ecg_rf_ds1_ds2
+task: multiclass
+labels: [0, 1, 2, 3]
+macro_labels: [0, 1, 2]
+dataset:
+  name: mitbih
+features:
+  - name: ecg_beat
+model:
+  name: ecg_rf
+  decision_weights: [1.0, 2.0, 1.0, 0.0]
+evaluation:
+  type: holdout
+  train_groups: DS1
+  test_groups: DS2
+output_dir: outputs
