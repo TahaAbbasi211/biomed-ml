@@ -6,7 +6,7 @@ import numpy as np
 import yaml
 from sklearn.pipeline import make_pipeline
 
-from .datasets import BonnEEGDataset, HeartDiseaseDataset
+from .datasets import BonnEEGDataset, HeartDiseaseDataset, MITBIHDataset
 from .evaluation import cross_validate, holdout_evaluate
 from .features import (BandPowerFeatures, CombinedFeatures, RawFeatures,
                        StatsFeatures)
@@ -14,7 +14,7 @@ from .models import build_model
 from .preprocessing import PREPROCESSORS
 
 # Registries: to plug in something new, write its class and add one line here.
-DATASETS = {"eeg_bonn": BonnEEGDataset, "heart_cleveland": HeartDiseaseDataset}
+DATASETS = {"eeg_bonn": BonnEEGDataset, "heart_cleveland": HeartDiseaseDataset, "mitbih": MITBIHDataset}
 FEATURES = {"stats": StatsFeatures, "band_power": BandPowerFeatures,
             "raw": RawFeatures}
 
