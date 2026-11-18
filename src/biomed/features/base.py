@@ -10,5 +10,5 @@ class BaseFeatureExtractor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def transform(self, X):
+    def transform(self, X, groups=None):
         raise NotImplementedError
