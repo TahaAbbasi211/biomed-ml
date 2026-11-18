@@ -13,5 +13,5 @@ class RawFeatures(BaseFeatureExtractor):
     def feature_names(self):
         return self.names
 
-    def transform(self, X):
+    def transform(self, X, groups=None):
         return np.asarray(X, dtype=float)
