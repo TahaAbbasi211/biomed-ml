@@ -1,0 +1,19 @@
+# Patient-grouped 5-fold cross validation on the training patients only (DS1).
+# The test patients (DS2) are not touched. Use this kind of run for choices.
+experiment: ecg_rf_ds1_cv
+task: multiclass
+labels: [0, 1, 2, 3]
+macro_labels: [0, 1, 2, 3]
+dataset:
+  name: mitbih
+  params:
+    subset: DS1
+features:
+  - name: ecg_beat
+model:
+  name: ecg_rf
+cv:
+  n_splits: 5
+  seed: 42
+  grouped: true
+output_dir: outputs
