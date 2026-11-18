@@ -16,5 +16,5 @@ class CombinedFeatures(BaseFeatureExtractor):
             names += e.feature_names
         return names
 
-    def transform(self, X):
-        return np.hstack([e.transform(X) for e in self.extractors])
+    def transform(self, X, groups=None):
+        return np.hstack([e.transform(X, groups) for e in self.extractors])
