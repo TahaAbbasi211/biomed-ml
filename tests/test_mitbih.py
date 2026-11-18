@@ -95,7 +95,7 @@ def test_cache_gives_identical_data(tmp_path):
     root = tmp_path / "mitdb"
     write_record(root, "100", PAIRS)
     a = MITBIHDataset(root=root, use_cache=True).load()
-    assert (tmp_path / "beats_cache.npz").exists()
+    assert list(tmp_path.glob("beats_cache_*.npz"))
     b = MITBIHDataset(root=root, use_cache=True).load()
     assert np.array_equal(a[0], b[0])
     assert np.array_equal(a[1], b[1])
