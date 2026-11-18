@@ -11,12 +11,12 @@ def train_final_model(cfg):
     """Fit the configured model on ALL data. Its score on this same data is
     meaningless; use the evaluation results for performance claims."""
     dataset = build_dataset(cfg["dataset"])
-    X, y, _ = dataset.load()
+    X, y, groups = dataset.load()
     target = make_target(cfg, y)
 
     features = build_features(cfg["features"], dataset)
     model = make_model_factory(cfg)()
-    model.fit(features.transform(X), target)
+    model.fit(features.transform(X, groups), target)
     return {
         "model": model,
         "features": features,
