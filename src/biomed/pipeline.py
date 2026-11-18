@@ -8,15 +8,16 @@ from sklearn.pipeline import make_pipeline
 
 from .datasets import BonnEEGDataset, HeartDiseaseDataset, MITBIHDataset
 from .evaluation import cross_validate, holdout_evaluate
-from .features import (BandPowerFeatures, CombinedFeatures, RawFeatures,
-                       StatsFeatures)
-from .models import build_model
+from .features import (BandPowerFeatures, CombinedFeatures, ECGBeatFeatures,
+                       RawFeatures, StatsFeatures)
+from .models import WeightedDecisionClassifier, build_model
 from .preprocessing import PREPROCESSORS
 
 # Registries: to plug in something new, write its class and add one line here.
-DATASETS = {"eeg_bonn": BonnEEGDataset, "heart_cleveland": HeartDiseaseDataset, "mitbih": MITBIHDataset}
+DATASETS = {"eeg_bonn": BonnEEGDataset, "heart_cleveland": HeartDiseaseDataset,
+            "mitbih": MITBIHDataset}
 FEATURES = {"stats": StatsFeatures, "band_power": BandPowerFeatures,
-            "raw": RawFeatures}
+            "raw": RawFeatures, "ecg_beat": ECGBeatFeatures}
 
 
 def load_config(path):
@@ -45,10 +46,15 @@ def build_features(items, dataset=None):
 
 
 def make_model_factory(cfg):
-    """Returns a function that builds a fresh model. If the config has a
-    'preprocess' entry, the model is wrapped in a Pipeline so the
-    preprocessing is fitted again inside every cross-validation fold."""
-    model_name = cfg["model"]["name"]
+    """Returns a function that builds a fresh model.
+
+    model.decision_weights wraps the model so that predictions are
+    argmax(probability * weight). 'preprocess' puts a preprocessing step in
+    front, inside a Pipeline, so it is fitted again in every fold.
+    """
+    mcfg = cfg["model"]
+    model_name = mcfg["name"]
+    weights = mcfg.get("decision_weights")
     prep_name = cfg.get("preprocess")
     if prep_name is not None and prep_name not in PREPROCESSORS:
         raise KeyError(f"Unknown preprocessor '{prep_name}'. "
@@ -56,6 +62,8 @@ def make_model_factory(cfg):
 
     def factory():
         model = build_model(model_name)
+        if weights is not None:
+            model = WeightedDecisionClassifier(model, weights)
         if prep_name is None:
             return model
         return make_pipeline(PREPROCESSORS[prep_name](), model)
@@ -72,7 +80,17 @@ def make_target(cfg, y):
     return np.isin(y, positive).astype(int)
 
 
-def run_evaluation(cfg, factory, F, target, groups):
+def _resolve_groups(spec, dataset):
+    """A list of group names, or the name of a split the dataset defines."""
+    if isinstance(spec, str):
+        splits = getattr(dataset, "named_splits", {})
+        if spec not in splits:
+            raise KeyError(f"Unknown group set '{spec}'. Available: {list(splits)}")
+        return list(splits[spec])
+    return spec
+
+
+def run_evaluation(cfg, factory, F, target, groups, dataset=None):
     """Evaluate with cross validation (default) or a group holdout split."""
     common = dict(task=cfg.get("task", "binary"),
                   labels=cfg.get("labels"),
@@ -82,8 +100,8 @@ def run_evaluation(cfg, factory, F, target, groups):
     if kind == "holdout":
         return holdout_evaluate(
             factory, F, target, groups,
-            test_groups=ev.get("test_groups"),
-            train_groups=ev.get("train_groups"),
+            test_groups=_resolve_groups(ev.get("test_groups"), dataset),
+            train_groups=_resolve_groups(ev.get("train_groups"), dataset),
             test_size=ev.get("test_size"),
             seed=ev.get("seed", 42), **common)
     if kind != "cv":
@@ -103,9 +121,10 @@ def run_experiment(cfg, save=True):
     target = make_target(cfg, y)
 
     fe = build_features(cfg["features"], dataset)
-    F = fe.transform(X)
+    F = fe.transform(X, groups)
 
-    folds = run_evaluation(cfg, make_model_factory(cfg), F, target, groups)
+    folds = run_evaluation(cfg, make_model_factory(cfg), F, target, groups,
+                           dataset)
     skip = {"fold", "n_train", "n_test"}
     metric_cols = [c for c in folds.columns if c not in skip]
     summary = folds[metric_cols].mean().round(4).to_dict()
@@ -119,6 +138,7 @@ def run_experiment(cfg, save=True):
             "task": cfg.get("task", "binary"),
             "evaluation": (cfg.get("evaluation") or {}).get("type", "cv"),
             "model": cfg["model"]["name"],
+            "decision_weights": cfg["model"].get("decision_weights"),
             "preprocess": cfg.get("preprocess"),
             "n_samples": int(len(target)),
             "n_features": int(F.shape[1]),
