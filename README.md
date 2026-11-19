@@ -3,7 +3,7 @@
 An extensible machine learning framework for biomedical data. Datasets,
 feature extractors, models and experiments are separate modules, and an
 experiment is just a small YAML file. The first module detects epileptic
-seizures in EEG segments.
+seizures in EEG segments, and the second classifies heartbeats from the MIT-BIH ECG database.
 
 ![Streamlit demo](docs/app.png)
 
@@ -55,6 +55,16 @@ of the same recording in both train and test, which inflates the score:
    validation.
 4. A Streamlit app loads the trained model and scores an uploaded signal or a
    local sample.
+
+## ECG: heartbeat classification on MIT-BIH
+
+The second module classifies single heartbeats from the MIT-BIH Arrhythmia Database (360 Hz). Each beat is a window of 90 samples before and 110 after the annotated R peak, plus the R–R intervals on either side. Beats carry one of four AAMI labels — N, S, V, F (Q/unclassifiable dropped; pacemaker records 102, 104, 107, 217 excluded).
+
+`ECGBeatFeatures` turns each beat into 57 features, and `ecg_rf` (random forest wrapped in `WeightedDecisionClassifier`, weights N 1, S 2, V 1, F 0) trains on DS1 and is tested on DS2 — the inter-patient split of de Chazal et al. (2004), 22 records each, so no patient appears on both sides.
+
+```
+python -m biomed.pipeline configs/ecg_rf.yaml
+```
 
 ## Project structure
 
@@ -133,7 +143,7 @@ used without the raw data through its upload option.
 
 ## Roadmap
 
-- Add the heart disease (tabular) and ECG modules from my earlier projects
+- ~~Add the heart disease (tabular) and ECG modules from my earlier projects~~ (done — heart module in `datasets/heart.py`, ECG module in the section above)
 - Add a 1D CNN model and compare it with the classical models
 - Report variability across folds and repeated splits
 
